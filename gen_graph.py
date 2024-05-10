@@ -200,8 +200,33 @@ class GenGraph:
         format_str = 'Len(frames) = {}, 1st frame={}'.format(len(self.parsed_frame_dict), self.parsed_frame_dict[list(self.parsed_frame_dict.keys())[0]])
         return format_str
 
+    @staticmethod
+    def clear_unknown_frames(current_frame_list):
+        cleared = []
+        for frame in current_frame_list:
+            if frame.fn_name.strip() == '??':
+                continue
+            cleared.append(frame)
+        for i, ele in enumerate(cleared):
+            ele.frame_no = i
+            if i > 0:
+                ele.callees = [cleared[i-1]]
+            else:
+                ele.callees = []
+            if i <  len(cleared) - 1:
+                ele.callers = [cleared[i+1]]
+            else:
+                ele.callers = []
+        return cleared
+
     def fix_up_global_dict(self, new_bt):
         logger.debug('fix up, #ofFrames={}'.format(len(new_bt)))
+
+        new_bt = GenGraph.clear_unknown_frames(new_bt)
+
+        if len(new_bt) == 0:
+            return
+
         for frame in new_bt:
             if frame.fn_name in self.parsed_frame_dict:
                 existing_frame = self.parsed_frame_dict[frame.fn_name]
